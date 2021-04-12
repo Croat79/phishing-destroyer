@@ -1,66 +1,78 @@
-import os
 import requests
 import random
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+from colorama import Fore
+import threading
+import time
+names = []
+lastnames = []
+success = 0
+ipfail = 0
+networkerror = 0
 
 
-def sendRequest(email, password, proxy):
+def sendRequest(email, password):
     try:
-        r = requests.post("https://servicsverfssl.serveirc.com/login/process_login.php", {
-            'login_email': email,
-            'login_password': password,
-            'splitLoginContext': 'inputPassword',
-            'isCookiedHybridEmail': 'true',
-            'partyIdHash': '619ff1e381b2c4c45e138e6c4bb51aae9a4da377f2682d58eafa68d1664c26e7',
-            'btnLogin': 'Login'
-        }, proxies=proxy, timeout=5)
+        data = {'login_email': email,
+                'login_password': password,
+                'splitLoginContext': 'inputPassword',
+                'isCookiedHybridEmail': 'true',
+                'partyIdHash': '619ff1e381b2c4c45e138e6c4bb51aae9a4da377f2682d58eafa68d1664c26e7',
+                'btnLogin': 'Login'}
+
+        url = 'https://en1eip5ym8j2ri0.m.pipedream.net'
+        r = requests.post(url, data=data, timeout=2.5)
         if '<h1>404 Not Found</h1>The page that you have requested could not be found.' in r.text:
-            return 1
+            return False
         else:
-            return 2
+            return True
     except:
-        return 0
+        return False
+
+
+def getHost():
+    return random.choice([
+        'gmail.com',
+        'orange.fr',
+        'icloud.com',
+        'yahoo.fr',
+        'yahoo.com'
+    ])
 
 
 def getEmail(names, lastnames):
-    return f'{names[random.randint(0, len(names))]}.{lastnames[random.randint(0, len(lastnames))]}@icloud.com'.replace('\n', '').replace('\r', '')
+    return f'{names[random.randint(0, len(names)-1)]}.{lastnames[random.randint(0, len(lastnames)-1)]}@{getHost()}'.replace('\n', '').replace('\r', '')
 
 
 def getPass(names):
-    return f'{names[random.randint(0, len(names))].capitalize()}{random.randint(0, 2000)}'.replace('\n', '').replace('\r', '')
+    return f'{names[random.randint(0, len(names)-1)].capitalize()}{random.randint(0, 2000)}'.replace('\n', '').replace('\r', '')
 
+
+def doRequest():
+    while True:
+        email = getEmail(names, lastnames).replace(' ','')
+        password = getPass(names).replace(' ','')
+        if sendRequest(email, password):
+            print(f'{Fore.GREEN} Success {Fore.WHITE}{email}:{password}')
+        else:
+            print(f'{Fore.RED} Failed {Fore.WHITE}{email}:{password}')
 
 if __name__ == "__main__":
+    print(f'''
+        {Fore.BLUE} Phishing destroyer
+        {Fore.MAGENTA} Coded by Drayneur\n
+    ''')
     f1 = open('names.txt')
     f2 = open('lastnames.txt')
-    f3 = open('proxies.txt')
-    names = []
-    lastnames = []
-    proxies = []
     for x in f1:
         names.append(x.lower())
     for x in f2:
         lastnames.append(x.lower())
-    for x in f3:
-        proxies.append(x.lower())
-    while True:
-        proxy = {'http': 'http://'+proxies[random.randint(0, len(proxies))].replace('\n', '').replace('\r', '')}
-        email = getEmail(names, lastnames)
-        password = getPass(names)
-        result = sendRequest(email, password, proxy)
-        if result == 2:
-            print(f'{bcolors.OKGREEN} Sucessfully with {email}:{password}')
-        elif result == 1:
-            print(f'{bcolors.WARNING} IP banned with {email}:{password}')
-        elif result == 0:
-            print(f'{bcolors.FAIL} Connection problem or proxy dead {email}:{password}')
+    threads =[]
+    for i in range(50):
+        t = threading.Thread(target=doRequest)
+        t.deamon = True
+        threads.append(t)
+    for i in range(50):
+        threads[i].start()
+    for i in range(50):
+        threads[i].join()
