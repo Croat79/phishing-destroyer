@@ -5,9 +5,6 @@ import threading
 import time
 names = []
 lastnames = []
-success = 0
-ipfail = 0
-networkerror = 0
 
 
 def sendRequest(email, password):
